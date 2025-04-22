@@ -58,4 +58,12 @@ module owner::staking {
         let interest = stake_info.amount * INTEREST_RATE * duration / (SECONDS_IN_YEAR * 100);
         interest
     }
+
+    #[test(admin = @0x1)]
+    public entry fun test_stake_and_claim(admin: &signer) acquires Pool {
+        aptos_coin::mint(admin, signer::address_of(admin), 1000000);
+        init_pool(admin);
+        fund_pool(admin, 100000);
+    }
+
 } 

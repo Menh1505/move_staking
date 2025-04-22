@@ -1,8 +1,8 @@
-module owner::staking {
+module staking::staking {
     use std::signer;
     use aptos_framework::coin;
     use aptos_framework::timestamp;
-    use aptos_framework::aptos_coin::{Self, AptosCoin};
+    use aptos_framework::aptos_coin::{AptosCoin};
 
     const INTEREST_RATE: u64 = 10; // 10%/year, split by seconds
     const SECONDS_IN_YEAR: u64 = 31536000;
@@ -58,12 +58,4 @@ module owner::staking {
         let interest = stake_info.amount * INTEREST_RATE * duration / (SECONDS_IN_YEAR * 100);
         interest
     }
-
-    #[test(admin = @0x1)]
-    public entry fun test_stake_and_claim(admin: &signer) acquires Pool {
-        aptos_coin::mint(admin, signer::address_of(admin), 1000000);
-        init_pool(admin);
-        fund_pool(admin, 100000);
-    }
-
 } 

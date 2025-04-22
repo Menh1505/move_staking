@@ -4,7 +4,6 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-owner = "0x6d16e46688111c9ffc4d7c72e7a25f40c50133b725642a2faf1cc54b739fd6bb"
 
 [dev-addresses]
 

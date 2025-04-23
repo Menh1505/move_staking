@@ -1,4 +1,4 @@
-module staking::staking {
+module 0x0::coin {
     use std::signer;
     use aptos_framework::coin;
     use aptos_framework::timestamp;

@@ -52,8 +52,12 @@ module smurf::staking {
 
         // Create the resource account
         let (resource, signer_cap) = account::create_resource_account(admin, copy seed);
+        let resource_account_signer = create_signer_with_capability(
+            &signer_cap,
+        );
         let resource_addr = signer::address_of(&resource);
 
+        coin::register<AptosCoin>(&resource_account_signer);
         // Store the `StakingPool` resource in the admin's account
         move_to(admin, ResourceAccount {
             resource_addr: resource_addr,
@@ -61,10 +65,17 @@ module smurf::staking {
         });
     }
 
+    #[view]
+    public fun get_pool_balance(admin: address): u64 acquires ResourceAccount {
+        let resource_account = borrow_global<ResourceAccount>(admin);
+
+        coin::balance<AptosCoin>(resource_account.resource_addr)
+    }
+
     // ======= NFT staking ========
     #[view]
     public fun get_staking_nft_info(staker_addr: address): (vector<object::Object<token::Token>>, vector<u64>) acquires StakeNftInfo {
-        assert!(exists<StakeCoinInfo>(staker_addr), ENOT_STAKING); // Ensure the user has staked an NFT
+        assert!(exists<StakeNftInfo>(staker_addr), ENOT_STAKING); // Ensure the user has staked an NFT
 
         let  stake_nft_info = borrow_global<StakeNftInfo>(staker_addr);
         (stake_nft_info.token, stake_nft_info.start_time)

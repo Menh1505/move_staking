@@ -4,10 +4,10 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-smurf="_"
+smurf = "6d16e46688111c9ffc4d7c72e7a25f40c50133b725642a2faf1cc54b739fd6bb"
 [dev-addresses]
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", subdir = "aptos-framework", rev = "mainnet" }
-AptosTokenObjects = { git = "https://github.com/aptos-labs/aptos-framework.git", subdir = "aptos-token-objects", rev = "mainnet" }
+AptosFramework = { git = "https://github.com/movementlabsxyz/aptos-core", rev = "movement", subdir = "aptos-move/framework/aptos-framework" }
+AptosTokenObjects = { git = "https://github.com/movementlabsxyz/aptos-core", rev = "movement", subdir = "aptos-move/framework/aptos-token-objects" }
 [dev-dependencies]

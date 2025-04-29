@@ -198,9 +198,8 @@ module smurf::smurf3 {
 
         assert!(now - *vector::borrow(&stake_nft_info.start_time, 0) > STAKING_DURATION, EEARLY_WITHDRAW);
 
-        let i = 0;
-        while (i < vector::length(&stake_nft_info.start_time)) {
-            let start_time = *vector::borrow(&stake_nft_info.start_time, i);
+        while(vector::length(&stake_nft_info.start_time) > 0) {
+            let start_time = *vector::borrow(&stake_nft_info.start_time, 0);
             let stake_duration = now - start_time;
 
             if (stake_duration < STAKING_DURATION) {
@@ -208,8 +207,8 @@ module smurf::smurf3 {
             };
 
             assert!(pool_balance >= CLAIM_REWARD, EINSUFFICIENT_BALANCE);
-            let token_id = vector::remove(&mut stake_nft_info.token, i);
-            vector::remove(&mut stake_nft_info.start_time, i);
+            let token_id = vector::remove(&mut stake_nft_info.token, 0);
+            vector::remove(&mut stake_nft_info.start_time, 0);
 
             object::transfer<token::Token>(&resource_signer, token_id, staker_addr);
             let payout = coin::withdraw<AptosCoin>(&resource_signer, CLAIM_REWARD);
@@ -220,13 +219,6 @@ module smurf::smurf3 {
                 staker: staker_addr,
                 token_id: object::object_address(&token_id),
                 reward: CLAIM_REWARD,
-            });
-        };
-
-        if (vector::is_empty(&stake_nft_info.token)) {
-            move_to(staker, StakeNftInfo {
-                token: vector::empty(),
-                start_time: vector::empty(),
             });
         };
     }
@@ -292,17 +284,16 @@ module smurf::smurf3 {
 
         assert!(now - *vector::borrow(&stake_coin_info.start_time, 0) > STAKING_DURATION, EEARLY_WITHDRAW);
 
-        let i = 0;
-        while (i < vector::length(&stake_coin_info.start_time)) {
-            let start_time = *vector::borrow(&stake_coin_info.start_time, i);
+        while (vector::length(&stake_coin_info.start_time) > 0) {
+            let start_time = *vector::borrow(&stake_coin_info.start_time, 0);
             let stake_duration = now - start_time;
 
             if (stake_duration < STAKING_DURATION) {
                 break
             };
 
-            let amount = vector::remove(&mut stake_coin_info.amount, i);
-            vector::remove(&mut stake_coin_info.start_time, i);
+            let amount = vector::remove(&mut stake_coin_info.amount, 0);
+            vector::remove(&mut stake_coin_info.start_time, 0);
             let total = amount + CLAIM_REWARD;
             assert!(pool_balance >= total, EINSUFFICIENT_BALANCE);
 

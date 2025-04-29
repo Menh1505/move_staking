@@ -1,4 +1,4 @@
-module smurf::staking {
+module smurf::smurf3 {
     use std::signer;
     use std::vector;
     use std::timestamp;
@@ -16,6 +16,7 @@ module smurf::staking {
     const EINSUFFICIENT_BALANCE: u64 = 5;
     const EINVALID_TOKEN: u64 = 6;
     const EPAUSED: u64 = 7;
+    const ENOT_INIT_POOL: u64 = 8;
 
     const CLAIM_REWARD: u64 = 3_000_000;
     const STAKING_DURATION: u64 = 60; // 30 days
@@ -118,24 +119,39 @@ module smurf::staking {
     }
 
     #[view]
-    public fun get_pool_balance(admin: address): u64 acquires ResourceAccount {
-        let pool = borrow_global<ResourceAccount>(admin);
-        coin::balance<AptosCoin>(pool.resource_addr)
+    public fun get_pool_balance(): u64 acquires ResourceAccount {
+        if(exists<ResourceAccount>(ADMIN_ADDRESS)) {
+            let pool = borrow_global<ResourceAccount>(ADMIN_ADDRESS);
+            coin::balance<AptosCoin>(pool.resource_addr)
+        } else {
+            0
+        }
+    }
+    #[view]
+    public fun test_exists(): u8 {
+        if(exists<ResourceAccount>(ADMIN_ADDRESS)){
+            1
+        } else {
+            assert!(false, ENOT_INIT_POOL);
+            0
+        }
     }
 
     #[view]
     public fun get_staking_nft_info(staker_addr: address): (vector<object::Object<token::Token>>, vector<u64>) acquires StakeNftInfo {
-        assert!(exists<StakeNftInfo>(staker_addr), ENOT_STAKING);
-        let stake_nft_info = borrow_global<StakeNftInfo>(staker_addr);
-        (stake_nft_info.token, stake_nft_info.start_time)
+        if(exists<StakeNftInfo>(staker_addr) ){
+            let stake_nft_info = borrow_global<StakeNftInfo>(staker_addr);
+            (stake_nft_info.token, stake_nft_info.start_time)
+        }else {
+            (vector::empty<object::Object<token::Token>>(), vector::empty<u64>())
+        }
     }
 
     public entry fun stake_nft(
         staker: &signer,
-        admin_addr: address,
         token_id: object::Object<token::Token>,
     ) acquires ResourceAccount, StakeNftInfo {
-        let pool = borrow_global_mut<ResourceAccount>(admin_addr);
+        let pool = borrow_global_mut<ResourceAccount>(ADMIN_ADDRESS);
         assert!(!pool.paused, EPAUSED);
         assert!(object::is_owner<token::Token>(token_id, signer::address_of(staker)), EINVALID_TOKEN);
 
@@ -166,12 +182,14 @@ module smurf::staking {
 
     public entry fun claim_nft(
         staker: &signer,
-        admin_addr: address,
     ) acquires ResourceAccount, StakeNftInfo {
-        let pool = borrow_global_mut<ResourceAccount>(admin_addr);
+        let pool = borrow_global_mut<ResourceAccount>(ADMIN_ADDRESS);
         assert!(!pool.paused, EPAUSED);
         let staker_addr = signer::address_of(staker);
-        assert!(exists<StakeNftInfo>(staker_addr), ENOT_STAKING);
+
+        if (!exists<StakeNftInfo>(staker_addr)) {
+            assert!(false, ENOT_STAKING);
+        };
 
         let stake_nft_info = borrow_global_mut<StakeNftInfo>(staker_addr);
         let resource_signer = account::create_signer_with_capability(&pool.signer_cap);
@@ -184,8 +202,7 @@ module smurf::staking {
             let stake_duration = now - start_time;
 
             if (stake_duration < STAKING_DURATION) {
-                i = i + 1;
-                continue;
+                break
             };
 
             assert!(pool_balance >= CLAIM_REWARD, EINSUFFICIENT_BALANCE);
@@ -214,17 +231,19 @@ module smurf::staking {
 
     #[view]
     public fun get_staking_coin_info(staker_addr: address): (vector<u64>, vector<u64>) acquires StakeCoinInfo {
-        assert!(exists<StakeCoinInfo>(staker_addr), ENOT_STAKING);
-        let stake_coin_info = borrow_global<StakeCoinInfo>(staker_addr);
-        (stake_coin_info.amount, stake_coin_info.start_time)
+        if (exists<StakeCoinInfo>(staker_addr)){
+            let stake_coin_info = borrow_global<StakeCoinInfo>(staker_addr);
+            (stake_coin_info.amount, stake_coin_info.start_time)
+        } else {
+            (vector::empty<u64>(), vector::empty<u64>())
+        }
     }
 
     public entry fun stake_coin(
         staker: &signer,
         amount: u64,
-        admin_addr: address,
     ) acquires ResourceAccount, StakeCoinInfo {
-        let pool = borrow_global_mut<ResourceAccount>(admin_addr);
+        let pool = borrow_global_mut<ResourceAccount>(ADMIN_ADDRESS);
         assert!(!pool.paused, EPAUSED);
         let staker_addr = signer::address_of(staker);
 
@@ -254,9 +273,8 @@ module smurf::staking {
 
     public entry fun claim_coin(
         staker: &signer,
-        admin_addr: address,
     ) acquires ResourceAccount, StakeCoinInfo {
-        let pool = borrow_global_mut<ResourceAccount>(admin_addr);
+        let pool = borrow_global_mut<ResourceAccount>(ADMIN_ADDRESS);
         assert!(!pool.paused, EPAUSED);
         let staker_addr = signer::address_of(staker);
         assert!(exists<StakeCoinInfo>(staker_addr), ENOT_STAKING);
@@ -266,14 +284,17 @@ module smurf::staking {
         let now = timestamp::now_seconds();
         let pool_balance = coin::balance<AptosCoin>(pool.resource_addr);
 
+        if(!exists<StakeCoinInfo>(staker_addr)) {
+            assert!(false, ENOT_STAKING);
+        };
+
         let i = 0;
         while (i < vector::length(&stake_coin_info.start_time)) {
             let start_time = *vector::borrow(&stake_coin_info.start_time, i);
             let stake_duration = now - start_time;
 
             if (stake_duration < STAKING_DURATION) {
-                i = i + 1;
-                continue;
+                break
             };
 
             let amount = vector::remove(&mut stake_coin_info.amount, i);
@@ -289,13 +310,6 @@ module smurf::staking {
                 staker: staker_addr,
                 amount,
                 reward: CLAIM_REWARD,
-            });
-        };
-
-        if (vector::is_empty(&stake_coin_info.amount)) {
-            move_to(staker, StakeCoinInfo {
-                amount: vector::empty(),
-                start_time: vector::empty(),
             });
         };
     }

@@ -196,6 +196,8 @@ module smurf::smurf3 {
         let now = timestamp::now_seconds();
         let pool_balance = coin::balance<AptosCoin>(pool.resource_addr);
 
+        assert!(now - *vector::borrow(&stake_nft_info.start_time, 0) > STAKING_DURATION, EEARLY_WITHDRAW);
+
         let i = 0;
         while (i < vector::length(&stake_nft_info.start_time)) {
             let start_time = *vector::borrow(&stake_nft_info.start_time, i);
@@ -287,6 +289,8 @@ module smurf::smurf3 {
         if(!exists<StakeCoinInfo>(staker_addr)) {
             assert!(false, ENOT_STAKING);
         };
+
+        assert!(now - *vector::borrow(&stake_coin_info.start_time, 0) > STAKING_DURATION, EEARLY_WITHDRAW);
 
         let i = 0;
         while (i < vector::length(&stake_coin_info.start_time)) {
